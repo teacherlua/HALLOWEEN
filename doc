@@ -1,0 +1,124 @@
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+
+doc = Document()
+sec = doc.sections[0]
+sec.top_margin = Inches(0.55)
+sec.bottom_margin = Inches(0.55)
+sec.left_margin = Inches(0.65)
+sec.right_margin = Inches(0.65)
+
+styles = doc.styles
+styles['Normal'].font.name = 'Aptos'
+styles['Normal'].font.size = Pt(9)
+styles['Normal'].font.color.rgb = RGBColor(40, 40, 40)
+for style_name, size in [('Title', 25), ('Heading 1', 17), ('Heading 2', 12)]:
+    styles[style_name].font.name = 'Aptos Display'
+    styles[style_name].font.size = Pt(size)
+    styles[style_name].font.bold = True
+    styles[style_name].font.color.rgb = RGBColor(150, 20, 35)
+
+def shade(cell, fill):
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = OxmlElement('w:shd')
+    shd.set(qn('w:fill'), fill)
+    tcPr.append(shd)
+
+def set_cell_text(cell, text, bold=False, color=None, size=8.5):
+    cell.text = ""
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_after = Pt(0)
+    r = p.add_run(text)
+    r.bold = bold
+    r.font.name = 'Aptos'
+    r.font.size = Pt(size)
+    if color:
+        r.font.color.rgb = RGBColor(*color)
+    cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+p = doc.add_paragraph()
+p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+r = p.add_run('OPERATION: ESCAPE THE SCHOOL')
+r.bold = True; r.font.name = 'Aptos Display'; r.font.size = Pt(24); r.font.color.rgb = RGBColor(150,20,35)
+p = doc.add_paragraph()
+p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+r = p.add_run('GUIA OPERACIONAL • THE HALLOWEEN CASE')
+r.bold = True; r.font.size = Pt(13); r.font.color.rgb = RGBColor(35,35,35)
+p = doc.add_paragraph()
+p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+p.add_run('4 versões do mistério | 6 salas | 4–5 minutos por grupo').italic = True
+
+doc.add_heading('1. COMO OPERAR', level=1)
+for line in [
+    'Antes de cada grupo entrar, o responsável define a versão (A, B, C ou D) e confere se as pistas dessa versão estão nas salas.',
+    'Os atores mantêm a mesma ambientação e o mesmo ritmo; trocam apenas as falas e evidências indicadas neste guia.',
+    'Não falar o nome do culpado antes da sala final. Na saída, não confirmar nem negar respostas para quem está na fila.',
+    'Tempo sugerido: salas 1, 2, 3 e 5 = 30 s cada; sala 4 = 35 s; sala 6 = 45 s; deslocamentos = 40–60 s.'
+]:
+    doc.add_paragraph(line, style='List Bullet')
+
+doc.add_heading('2. RESUMO DAS VERSÕES — USO EXCLUSIVO DA EQUIPE', level=1)
+versions = [
+    ('A — The Director’s Secret', 'Dr. Victor Graves', 'Daniel descobriu que Graves escondia os resultados perigosos do experimento.'),
+    ('B — The Assistant’s Revenge', 'Alex Morgan', 'Alex matou Daniel por inveja e tentou incriminar Graves.'),
+    ('C — The Silent Witness', 'Jordan Blake', 'Jordan matou Daniel para esconder sua participação nas falhas de segurança.'),
+    ('D — The False Accusation', 'Taylor Reed', 'Taylor matou Daniel e mentiu ao acusar Graves.')
+]
+table = doc.add_table(rows=1, cols=3)
+table.alignment = WD_TABLE_ALIGNMENT.CENTER
+table.style = 'Table Grid'
+for c, t in zip(table.rows[0].cells, ['VERSÃO', 'CULPADO', 'MOTIVO']):
+    set_cell_text(c, t, True, (255,255,255), 8.5); shade(c, '961423')
+for row in versions:
+    cells = table.add_row().cells
+    for c, t in zip(cells, row):
+        set_cell_text(c, t, size=8.2)
+    shade(cells[0], 'F5E7E9')
+
+doc.add_heading('3. FALAS E PISTAS POR SALA', level=1)
+rooms = [
+    ('SALA 1 — THE CRIME SCENE', 'Fala fixa: “Welcome to the crime scene. Daniel Reed is dead. Find the evidence. Find the killer!”',
+     'Pista inicial por versão: A — nota “DANIEL FOUND THE TRUTH”; B — bilhete “HE STOLE MY WORK”; C — bilhete “DANIEL KNOWS WHAT I DID”; D — anotação “SOMEONE IS LYING”.'),
+    ('SALA 2 — THE EVIDENCE ROOM', 'Fala fixa: “Check the access record. Who entered the laboratory?”',
+     'A — cartão de Graves, 9:30 PM. B — registro de Alex após 9:30 PM. C — chave da sala de controle emprestada a Jordan. D — registro mostra Taylor perto do laboratório, apesar de negar estar lá.'),
+    ('SALA 3 — THE INTERROGATION ROOM', 'Fala fixa: “Read the message. What does it tell you?”',
+     'A — “KEEP THE LABORATORY LOCKED. DON’T LET ANYONE ENTER.” B — “YOU TOOK MY WORK. YOU’LL PAY.” C — “KEEP MY NAME OUT OF THIS.” D — “BLAME DR. GRAVES.”'),
+    ('SALA 4 — THE FORBIDDEN LAB', 'Fala fixa: “Read the last line of the report!”',
+     'A — “DANIEL FOUND THE TRUTH. GRAVES MUST STOP HIM.” B — “ALEX WANTED DANIEL’S CREDIT.” C — “JORDAN KNEW ABOUT THE SAFETY FAILURES.” D — “TAYLOR WAS SEEN NEAR THE LAB.”'),
+    ('SALA 5 — THE MISSING WITNESS', 'Fala fixa: “I heard them arguing. Check the final evidence in the security room!”',
+     'A — testemunha: “I saw Dr. Graves with Daniel. They were arguing.” B — testemunha: “I heard Alex say, ‘You’ll pay for this!’” C — testemunha: “Jordan said, ‘Nobody can know the truth.’” D — testemunha inicialmente acusa Graves; o horário do registro contradiz seu depoimento.'),
+    ('SALA 6 — THE FINAL ESCAPE', 'Fala fixa de Graves/ator: “You found the evidence! You are not leaving this school!” Monitor: “FINAL CODE: SAY THE TRUTH.”',
+     'A — grupo: “Dr. Graves killed Daniel!” B — grupo: “Alex Morgan killed Daniel!” C — grupo: “Jordan Blake killed Daniel!” D — grupo: “Taylor Reed killed Daniel!” Ator: “Run! Get out! Go, go, go!”')
+]
+for title, fixed, clue in rooms:
+    doc.add_heading(title, level=2)
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(2)
+    r = p.add_run(fixed); r.bold = True
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(5)
+    p.add_run(clue)
+
+doc.add_heading('4. CONFERÊNCIA RÁPIDA', level=1)
+check = [
+    'Separar as pistas por versão e identificar os envelopes A, B, C e D.',
+    'Conferir nomes, horários e mensagens antes de cada rodada.',
+    'Alternar a ordem das versões para grupos consecutivos.',
+    'Não deixar documentos de uma versão visíveis na sala quando outra versão estiver em uso.',
+    'Manter portas destrancadas, saídas livres e sustos sem contato físico.'
+]
+for item in check:
+    doc.add_paragraph('☐ ' + item)
+
+p = doc.add_paragraph()
+p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+r = p.add_run('CONTROLE INTERNO — NÃO DEIXAR ESTE GUIA VISÍVEL AOS PARTICIPANTES')
+r.bold = True; r.font.size = Pt(8); r.font.color.rgb = RGBColor(150,20,35)
+
+path = '/mnt/data/Guia_Operacional_Halloween_CNA_4_Versoes.docx'
+doc.save(path)
+print(path)
